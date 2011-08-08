@@ -52,19 +52,31 @@ describe GitCommitNotifier::Emailer do
     end
   end
 
+  describe :template_path do
+    it "should return default template path if custom is not provided" do
+      emailer = GitCommitNotifier::Emailer.new({})
+      emailer.template_path.should == GitCommitNotifier::Emailer::DEFAULT_TEMPLATE_PATH
+    end
+
+    it "should return custom template path if custom is provided" do
+      emailer = GitCommitNotifier::Emailer.new({'template' => '/path/to/custom/template'})
+      emailer.template_path.should == '/path/to/custom/template'
+    end
+  end
+
   describe :template do
     before(:each) do
-      GitCommitNotifier::Emailer.reset_template
-      mock(IO).read(GitCommitNotifier::Emailer::TEMPLATE) { 'erb' }
+      @emailer = GitCommitNotifier::Emailer.new({})
+      mock(IO).read(GitCommitNotifier::Emailer::DEFAULT_TEMPLATE_PATH) { 'erb' }
     end
 
     it "should respond to result" do
-      GitCommitNotifier::Emailer.template.should respond_to(:result)
+      @emailer.template.should respond_to(:result)
     end
 
     it "should return Erubis template if Erubis installed" do
-      mock(GitCommitNotifier::Emailer).require('erubis')
-      dont_allow(GitCommitNotifier::Emailer).require('erb')
+      mock(@emailer).require('erubis')
+      dont_allow(@emailer).require('erb')
       unless defined?(Erubis)
         module Erubis
           class Eruby
@@ -74,16 +86,17 @@ describe GitCommitNotifier::Emailer do
         end
       end
       mock.proxy(Erubis::Eruby).new('erb')
-      GitCommitNotifier::Emailer.template.should be_kind_of(Erubis::Eruby)
+
+      @emailer.template.should be_kind_of(Erubis::Eruby)
     end
 
     it "should return ERB template unless Erubis installed" do
       require 'erb'
-      mock(GitCommitNotifier::Emailer).require('erubis') { raise LoadError.new('erubis') }
-      mock(GitCommitNotifier::Emailer).require('erb')
+      mock(@emailer).require('erubis') { raise LoadError.new('erubis') }
+      mock(@emailer).require('erb')
       mock.proxy(ERB).new('erb')
 
-      GitCommitNotifier::Emailer.template.should be_kind_of(ERB)
+      @emailer.template.should be_kind_of(ERB)
     end
   end
 end

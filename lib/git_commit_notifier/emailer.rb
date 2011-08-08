@@ -2,7 +2,7 @@ require 'premailer'
 
 class GitCommitNotifier::Emailer
   DEFAULT_STYLESHEET_PATH = File.join(File.dirname(__FILE__), '/../../template/styles.css').freeze
-  TEMPLATE = File.join(File.dirname(__FILE__), '/../../template/email.html.erb').freeze
+  DEFAULT_TEMPLATE_PATH   = File.join(File.dirname(__FILE__), '/../../template/email.html.erb').freeze
   PARAMETERS = %w[project_path recipient from_address from_alias subject text_message html_message ref_name old_rev new_rev].freeze
 
   attr_reader :config
@@ -12,30 +12,29 @@ class GitCommitNotifier::Emailer
     PARAMETERS.each do |name|
       instance_variable_set("@#{name}".to_sym, options[name.to_sym])
     end
+    reset_template
   end
 
-  class << self
-    def reset_template
-      @template = nil
-    end
+  def reset_template
+    @template = nil
+  end
 
-    def template
-      unless @template
-        source = IO.read(TEMPLATE)
-        begin
-          require 'erubis'
-           @template = Erubis::Eruby.new(source)
-        rescue LoadError
-          require 'erb'
-          @template = ERB.new(source)
-        end
+  def template
+    unless @template
+      source = IO.read(template_path)
+      begin
+        require 'erubis'
+        @template = Erubis::Eruby.new(source)
+      rescue LoadError
+        require 'erb'
+        @template = ERB.new(source)
       end
-      @template
     end
+    @template
   end
 
   def mail_html_message
-    html = GitCommitNotifier::Emailer.template.result(binding)
+    html = template.result(binding)
     premailer = Premailer.new(html, :with_html_string => true, :adapter => :nokogiri)
     premailer.to_inline_css
   end
@@ -50,6 +49,10 @@ class GitCommitNotifier::Emailer
   def stylesheet_string
     stylesheet = config['stylesheet'] || DEFAULT_STYLESHEET_PATH
     IO.read(stylesheet)
+  end
+
+  def template_path
+    config['template'] || DEFAULT_TEMPLATE_PATH
   end
 
   def perform_delivery_smtp(content, smtp_settings)

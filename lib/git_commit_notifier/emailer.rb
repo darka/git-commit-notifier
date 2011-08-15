@@ -70,7 +70,8 @@ class GitCommitNotifier::Emailer
 
       recp = @recipient.split(",")
 
-      run_without_warnings do
+      # Send the message ignoring any UTF-8 warnings ruby produces
+      self.class.run_without_warnings do
         smtp.open_message_stream(@from_address, recp) do |f|
           content.each do |line|
             f.puts line
@@ -169,6 +170,7 @@ class GitCommitNotifier::Emailer
       text
   end
 
+  # Execute the block ignoring all ruby warnings
   def self.run_without_warnings(&block)
     warn_level = $VERBOSE
     $VERBOSE = nil

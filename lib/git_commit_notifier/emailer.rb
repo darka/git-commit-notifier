@@ -69,11 +69,15 @@ class GitCommitNotifier::Emailer
                     settings['user_name'], settings['password'], settings['authentication']) do |smtp|
 
       recp = @recipient.split(",")
-      smtp.open_message_stream(@from_address, recp) do |f|
-        content.each do |line|
-          f.puts line
+
+      run_without_warnings do
+        smtp.open_message_stream(@from_address, recp) do |f|
+          content.each do |line|
+            f.puts line
+          end
         end
       end
+
     end
   end
 
@@ -163,6 +167,14 @@ class GitCommitNotifier::Emailer
     (text =~ CHARS_NEEDING_QUOTING) ?
       quoted_printable(text, charset) :
       text
+  end
+
+  def self.run_without_warnings(&block)
+    warn_level = $VERBOSE
+    $VERBOSE = nil
+    result = block.call
+    $VERBOSE = warn_level
+    result
   end
 end
 

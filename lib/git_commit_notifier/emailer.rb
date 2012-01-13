@@ -64,7 +64,7 @@ class GitCommitNotifier::Emailer
 
     main_smtp = Net::SMTP.new settings['address'], settings['port']
 
-    main_smtp.enable_starttls  if settings['enable_tls']
+    main_smtp.enable_tls  if settings['enable_tls']
     main_smtp.start( settings['domain'],
                     settings['user_name'], settings['password'], settings['authentication']) do |smtp|
 
